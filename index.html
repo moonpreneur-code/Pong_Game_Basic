@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>I2C Scanner Code</title>
+  <title>Pong Game Basic</title>
   <meta name="description" content="One-click Copy page for sharing code." />
   <style>
     :root{
@@ -34,7 +34,7 @@
 <body>
   <div class="wrap">
     <div class="card">
-      <h1>I2C Scanner Code</h1>
+      <h1>Pong Game Basic</h1>
 
       <div class="tools">
         <button id="copyBtn" aria-label="Copy code">📋 Copy Code</button>
@@ -42,20 +42,107 @@
 
       <div class="codewrap">
         <pre id="code"><code>
-from machine import Pin, I2C
+import pygame
+import sys
+import random
 
-# Initialize I2C on GP1 (SCL) and GP0 (SDA)
-i2c = I2C(0, scl=Pin(1), sda=Pin(0))
+# Initialize
+pygame.init()
+screen = pygame.display.set_mode((800, 600))
+pygame.display.set_caption("Pong Game - Session 1")
+clock = pygame.time.Clock()
 
-# Scan for I2C devices and print their addresses in hexadecimal
-devices = i2c.scan()
+# Colors
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
 
-if devices:
-    print("I2C device(s) found:")
-    for device in devices:
-        print("Address in HEX: {}".format(hex(device)))
-else:
-    print("No I2C devices found")
+# Game objects
+left = pygame.Rect(20, 250, 10, 100)
+right = pygame.Rect(770, 250, 10, 100)
+ball = pygame.Rect(400, 300, 15, 15)
+ball_speed = [5, 5]
+
+# Game state
+score = [0, 0]
+state = "play"   # We'll use this more in Session 2
+
+def reset_ball():
+    """Place ball in the center and give it a random direction."""
+    ball.center = (400, 300)
+    ball_speed[0] = 5 * random.choice([-1, 1])
+    ball_speed[1] = 5 * random.choice([-1, 1])
+
+def reset_game():
+    """Reset paddles, score, and ball."""
+    global score
+    score = [0, 0]
+    left.centery = right.centery = 300
+    reset_ball()
+
+def draw_text(text, size, y, color=WHITE):
+    """Helper to draw centered text at given y position."""
+    font = pygame.font.Font(None, size)
+    text_surf = font.render(text, True, color)
+    screen.blit(text_surf, (400 - text_surf.get_width() // 2, y))
+
+def play():
+    """Main game logic: input, physics, drawing."""
+    # Controls
+    keys = pygame.key.get_pressed()
+    if keys[pygame.K_w] and left.top > 0:
+        left.y -= 7
+    if keys[pygame.K_s] and left.bottom < 600:
+        left.y += 7
+    if keys[pygame.K_UP] and right.top > 0:
+        right.y -= 7
+    if keys[pygame.K_DOWN] and right.bottom < 600:
+        right.y += 7
+
+    # Move ball
+    ball.x += ball_speed[0]
+    ball.y += ball_speed[1]
+
+    # Bounce on top/bottom
+    if ball.top <= 0 or ball.bottom >= 600:
+        ball_speed[1] *= -1
+
+    # Bounce on paddles
+    if ball.colliderect(left) or ball.colliderect(right):
+        ball_speed[0] *= -1
+
+    # Score
+    if ball.left <= 0:
+        score[1] += 1
+        reset_ball()
+    if ball.right >= 800:
+        score[0] += 1
+        reset_ball()
+
+    # Draw
+    screen.fill(BLACK)
+    pygame.draw.rect(screen, WHITE, left)
+    pygame.draw.rect(screen, WHITE, right)
+    pygame.draw.ellipse(screen, WHITE, ball)
+    pygame.draw.aaline(screen, WHITE, (400, 0), (400, 600))
+    draw_text(f"{score[0]}   {score[1]}", 50, 30)
+
+    # Return a state so in Session 2 we can switch to 'over', 'menu', etc.
+    return "play"
+
+# Main loop
+reset_game()
+while True:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            pygame.quit()
+            sys.exit()
+
+    if state == "play":
+        state = play()
+
+    pygame.display.flip()
+    clock.tick(60)
+
 </code></pre>
       </div>
     </div>
